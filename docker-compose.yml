@@ -8,17 +8,15 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: fullstack-postgres
-    environment:
-      POSTGRES_DB: ${DB_NAME:-fullstack_db}
-      POSTGRES_USER: ${DB_USERNAME:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    env_file:
+      - .env
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database:/docker-entrypoint-initdb.d    # Auto-run SQL scripts on first start
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_NAME:-fullstack_db}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -31,16 +29,10 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: fullstack-backend
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: ${DB_NAME:-fullstack_db}
-      DB_USERNAME: ${DB_USERNAME:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-postgres}
-      SERVER_PORT: 8080
+    env_file:
+      - .env
     ports:
-      - "8080:8080"
+      - "${BACKEND_HOST_PORT:-8080}:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -59,16 +51,10 @@ services:
       context: ./backend-booking
       dockerfile: Dockerfile
     container_name: fullstack-backend-booking
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: ${DB_NAME:-fullstack_db}
-      DB_USERNAME: ${DB_USERNAME:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-postgres}
-      SERVER_PORT: 8081
+    env_file:
+      - .env
     ports:
-      - "8081:8081"
+      - "${BOOKING_HOST_PORT:-8081}:8081"
     depends_on:
       postgres:
         condition: service_healthy
@@ -88,7 +74,7 @@ services:
       dockerfile: Dockerfile
     container_name: fullstack-frontend
     ports:
-      - "3000:80"
+      - "${FRONTEND_HOST_PORT:-3000}:8080"
     depends_on:
       - backend
       - backend-booking

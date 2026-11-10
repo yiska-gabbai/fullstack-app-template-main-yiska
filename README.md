@@ -97,8 +97,9 @@ root/
 # 1. Clone the repository
 git clone <repo-url> && cd fullstack-app-template
 
-# 2. Copy environment variables
+# 2. Copy environment variables, then set a strong POSTGRES_PASSWORD in .env
 cp .env.example .env
+# PowerShell alternative: Copy-Item .env.example .env
 
 # 3. Start all services
 docker-compose up --build
@@ -110,6 +111,32 @@ docker-compose up --build
 #    Swagger (Users):  http://localhost:8080/swagger-ui.html
 #    Swagger (Booking): http://localhost:8081/swagger-ui.html
 ```
+
+### Build and compare the frontend image size
+
+The frontend already uses a multi-stage build: Node.js is only used to build the static files, and Nginx serves them in the runtime image. The runtime base is `nginx:stable-alpine-slim`. To compare it with the previous `nginx:alpine` base, run these commands from the project root in PowerShell:
+
+```powershell
+# Before: build with the previous Nginx base
+docker build --build-arg NGINX_RUNTIME_IMAGE=nginx:alpine -t fullstack-frontend:before ./frontend
+
+# After: build with the smaller Nginx base
+docker build -t fullstack-frontend:after ./frontend
+
+# Display both image sizes
+docker image ls --filter=reference=fullstack-frontend:* --format "table {{.Tag}}`t{{.Size}}"
+```
+
+Capture the displayed comparison with **Win+Shift+S**. To rebuild the complete application after the change, run:
+
+```powershell
+docker compose build
+docker compose up
+```
+
+### Container security and environment variables
+
+The backend runtime images run as the non-root `appuser`; the frontend Nginx process runs as the non-root `nginx` user and listens on container port 8080. Runtime configuration is loaded from the root `.env` file through Compose `env_file` entries. Copy `.env.example` to `.env`, replace `POSTGRES_PASSWORD` with a strong password, and do not commit `.env` (it is ignored by Git). The `.env.example` file contains placeholders only. When updating an existing database volume, changing `POSTGRES_PASSWORD` in `.env` does not change the password already stored in PostgreSQL; update the database user's password before restarting the backends with the new value.
 
 ### Option 2: Run Locally (Development)
 
